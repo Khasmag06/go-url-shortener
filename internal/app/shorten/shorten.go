@@ -14,5 +14,5 @@ func URLShorten() string {
 	for i := 0; i < length; i++ {
 		url.WriteByte(alphabet[rand.Intn(len(alphabet))])
 	}
-	return "/" + url.String()
+	return url.String()
 }
