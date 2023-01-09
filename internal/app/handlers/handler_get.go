@@ -13,9 +13,6 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	urlShort := r.URL.Path
 	fmt.Println(urlShort)
-	if storage.Urls.Get(urlShort) == "" {
-		http.Error(w, "url don't found", http.StatusBadRequest)
-	}
 	w.Header().Add("Location", storage.Urls.Get(urlShort))
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }

@@ -14,8 +14,6 @@ func Route(w http.ResponseWriter, r *http.Request) {
 		PostHandler(w, r)
 	case validPathGet.MatchString(r.URL.Path):
 		GetHandler(w, r)
-	default:
-		http.Error(w, "invalid Page Title", http.StatusBadRequest)
 
 	}
 }
