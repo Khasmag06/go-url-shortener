@@ -20,7 +20,7 @@ func TestGetHandler(t *testing.T) {
 		{
 			name: "positive test #1",
 			want: want{
-				code:     http.StatusBadRequest,
+				code:     http.StatusTemporaryRedirect,
 				location: "https://www.google.com/",
 			}},
 	}
