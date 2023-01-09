@@ -12,11 +12,11 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Only Post requests are allowed!", http.StatusMethodNotAllowed)
 		return
 	}
-	urlOriginal := r.FormValue("url")
+	url := r.FormValue("url")
 	urlShort := shorten.URLShorten()
-	storage.Urls.Put(urlShort, urlOriginal)
+	storage.Urls.Put(urlShort, url)
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
-	fmt.Fprint(w, "http://localhost:8080/"+urlShort)
+	fmt.Fprint(w, "http://localhost:8080"+urlShort)
 }
