@@ -1,6 +1,7 @@
 package handlers_test
 
 import (
+	"fmt"
 	"github.com/Khasmag06/go-url-shortener/internal/app/handlers"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -20,7 +21,7 @@ func TestGetHandler(t *testing.T) {
 		{
 			name: "positive test #1",
 			want: want{
-				code:     http.StatusBadRequest,
+				code:     http.StatusTemporaryRedirect,
 				location: "https://www.google.com/",
 			}},
 	}
@@ -32,6 +33,8 @@ func TestGetHandler(t *testing.T) {
 			h.ServeHTTP(w, request)
 			response := w.Result()
 			defer response.Body.Close()
+			fmt.Println(response.StatusCode)
+			fmt.Println(response.Header.Get("Location"))
 			assert.Equal(t, response.StatusCode, tt.want.code)
 			assert.Equal(t, response.Header.Get("Location"), tt.want.location)
 

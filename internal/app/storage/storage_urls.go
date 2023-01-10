@@ -17,4 +17,4 @@ func (s *Storage) Get(id string) string {
 
 }
 
-var Urls = Storage{map[string]string{"google": "https://www.google.com/"}}
+var Urls = Storage{map[string]string{"/google": "https://www.google.com/"}}
