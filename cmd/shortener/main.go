@@ -9,8 +9,12 @@ import (
 )
 
 func main() {
-	r := chi.NewRouter()
+	r := NewRouter()
+	log.Fatal(http.ListenAndServe(":8080", r))
+}
 
+func NewRouter() chi.Router {
+	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
@@ -21,5 +25,5 @@ func main() {
 		r.Get("/", handlers.HomeHandler)
 		r.Get("/{id}", handlers.GetHandler)
 	})
-	log.Fatal(http.ListenAndServe(":8080", r))
+	return r
 }

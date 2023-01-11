@@ -1,14 +1,12 @@
 package handlers_test
 
 import (
-	"bytes"
 	"github.com/Khasmag06/go-url-shortener/internal/app/handlers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"regexp"
 	"testing"
 )
@@ -33,10 +31,7 @@ func TestPostHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			data := url.Values{}
-			long := "https://www.google.com/"
-			data.Set("url", long)
-			request := httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(data.Encode()))
+			request := httptest.NewRequest(http.MethodPost, "/", nil)
 			w := httptest.NewRecorder()
 			h := http.HandlerFunc(handlers.PostHandler)
 			h.ServeHTTP(w, request)
