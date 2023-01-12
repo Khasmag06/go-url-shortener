@@ -1,20 +1,36 @@
 package storage
 
-type Storage struct {
-	urls map[string]string
+import (
+	"errors"
+)
+
+type Storage interface {
+	Add(shortURL *ShortURL)
+	Get(id string) (*ShortURL, error)
 }
 
-func (s *Storage) Put(id, url string) {
-	s.urls[id] = url
+type ShortURL struct {
+	ID          string
+	OriginalURL string
 }
 
-func (s *Storage) Get(id string) string {
-	url, ok := s.urls[id]
-	if !ok {
-		return ""
+type URLStorage struct {
+	urls []*ShortURL
+}
+
+func (u *URLStorage) Add(s *ShortURL) {
+	u.urls = append(u.urls, s)
+
+}
+
+func (u *URLStorage) Get(id string) (*ShortURL, error) {
+	for _, el := range u.urls {
+		if el.ID == id {
+			return el, nil
+		}
 	}
-	return url
-
+	return &ShortURL{"", ""}, errors.New("not found")
 }
 
-var Urls = Storage{map[string]string{"google": "https://www.google.com/"}}
+var short = ShortURL{"google", "https://www.google.com/"}
+var Urls Storage = &URLStorage{[]*ShortURL{&short}}

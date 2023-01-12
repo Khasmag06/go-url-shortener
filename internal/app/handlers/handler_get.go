@@ -7,28 +7,26 @@ import (
 	"regexp"
 )
 
+var ShortIDValid = regexp.MustCompile(`^([a-zA-Z]{6})$`)
+
 func GetHandler(w http.ResponseWriter, r *http.Request) {
 	shortID := chi.URLParam(r, "id")
 
-	if !validURLParameter(`^([a-zA-Z]{6})$`, shortID) {
+	if !ShortIDValid.MatchString(shortID) {
 		http.Error(w, "Incorrect parameters, you can only use letters", http.StatusBadRequest)
 		return
 	}
 
-	urlOriginal := storage.Urls.Get(shortID)
-	if urlOriginal == "" {
-		http.Error(w, "Link don't found", http.StatusBadRequest)
+	url, err := storage.Urls.Get(shortID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	w.Header().Set("Location", urlOriginal)
+
+	w.Header().Set("Location", url.OriginalURL)
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Home page"))
-}
-
-func validURLParameter(re, urlParameter string) bool {
-	var validPathGet = regexp.MustCompile(re)
-	return validPathGet.MatchString(urlParameter)
 }

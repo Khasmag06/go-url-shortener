@@ -8,6 +8,8 @@ import (
 	"net/http"
 )
 
+const localhost = "http://localhost:8080/"
+
 func PostHandler(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
@@ -17,9 +19,10 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	urlOriginal := string(body)
 	short := shorten.URLShorten()
-	storage.Urls.Put(short, urlOriginal)
+	shortURL := storage.ShortURL{ID: short, OriginalURL: urlOriginal}
+	storage.Urls.Add(&shortURL)
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
-	fmt.Fprint(w, "http://localhost:8080/"+short)
+	fmt.Fprint(w, localhost+short)
 }
