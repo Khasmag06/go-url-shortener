@@ -22,6 +22,7 @@ func NewRouter() chi.Router {
 
 	r.Route("/", func(r chi.Router) {
 		r.Post("/", handlers.PostHandler)
+		r.Post("/api/shorten", handlers.PostAPIHandler)
 		r.Get("/", handlers.HomeHandler)
 		r.Get("/{id}", handlers.GetHandler)
 	})
