@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/Khasmag06/go-url-shortener/config"
 	"github.com/Khasmag06/go-url-shortener/internal/app/handlers"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -9,8 +10,12 @@ import (
 )
 
 func main() {
+	cfg, err := config.NewConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
 	r := NewRouter()
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Fatal(http.ListenAndServe(cfg.ServerAddress, r))
 }
 
 func NewRouter() chi.Router {

@@ -32,5 +32,5 @@ func (u *URLStorage) Get(id string) (*ShortURL, error) {
 	return &ShortURL{"", ""}, errors.New("not found")
 }
 
-var short = ShortURL{"google", "https://www.google.com/"}
+var short = ShortURL{"/google", "https://www.google.com/"}
 var Urls Storage = &URLStorage{[]*ShortURL{&short}}

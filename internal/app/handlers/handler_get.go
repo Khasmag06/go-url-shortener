@@ -7,10 +7,10 @@ import (
 	"regexp"
 )
 
-var ShortIDValid = regexp.MustCompile(`^([a-zA-Z]{6})$`)
+var ShortIDValid = regexp.MustCompile(`^/([a-zA-Z]{6})$`)
 
 func GetHandler(w http.ResponseWriter, r *http.Request) {
-	shortID := chi.URLParam(r, "id")
+	shortID := "/" + chi.URLParam(r, "id")
 
 	if !ShortIDValid.MatchString(shortID) {
 		http.Error(w, "Incorrect parameters, you can only use letters", http.StatusBadRequest)

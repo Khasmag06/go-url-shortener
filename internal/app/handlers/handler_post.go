@@ -2,16 +2,19 @@ package handlers
 
 import (
 	"fmt"
+	"github.com/Khasmag06/go-url-shortener/config"
 	"github.com/Khasmag06/go-url-shortener/internal/app/shorten"
 	"github.com/Khasmag06/go-url-shortener/internal/app/storage"
 	"io"
+	"log"
 	"net/http"
 )
 
-const localhost = "http://localhost:8080/"
-
 func PostHandler(w http.ResponseWriter, r *http.Request) {
-
+	cfg, err := config.NewConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
 	defer r.Body.Close()
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -24,5 +27,5 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
-	fmt.Fprint(w, localhost+short)
+	fmt.Fprint(w, cfg.BaseURL+short)
 }
