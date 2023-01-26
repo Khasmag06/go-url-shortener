@@ -10,10 +10,7 @@ import (
 )
 
 func main() {
-	cfg, err := config.NewConfig()
-	if err != nil {
-		log.Fatal(err)
-	}
+	cfg := config.NewConfig()
 	r := NewRouter()
 	log.Fatal(http.ListenAndServe(cfg.ServerAddress, r))
 }

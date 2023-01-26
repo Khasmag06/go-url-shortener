@@ -3,10 +3,8 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/Khasmag06/go-url-shortener/config"
 	"github.com/Khasmag06/go-url-shortener/internal/app/shorten"
 	"github.com/Khasmag06/go-url-shortener/internal/app/storage"
-	"log"
 	"net/http"
 )
 
@@ -19,11 +17,6 @@ type JSONShortURL struct {
 }
 
 func PostAPIHandler(w http.ResponseWriter, r *http.Request) {
-	cfg, err := config.NewConfig()
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	var u JSONOriginalURL
 	if err := json.NewDecoder(r.Body).Decode(&u); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

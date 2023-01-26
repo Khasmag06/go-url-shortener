@@ -1,8 +1,13 @@
 package storage
 
 import (
+	"encoding/json"
 	"errors"
+	"github.com/Khasmag06/go-url-shortener/config"
+	"os"
 )
+
+var cfg = config.NewConfig()
 
 type Storage interface {
 	Add(shortURL *ShortURL)
@@ -10,8 +15,8 @@ type Storage interface {
 }
 
 type ShortURL struct {
-	ID          string
-	OriginalURL string
+	ID          string `json:"id"`
+	OriginalURL string `json:"originalURL"`
 }
 
 type URLStorage struct {
@@ -32,5 +37,45 @@ func (u *URLStorage) Get(id string) (*ShortURL, error) {
 	return &ShortURL{"", ""}, errors.New("not found")
 }
 
-var short = ShortURL{"/google", "https://www.google.com/"}
-var Urls Storage = &URLStorage{[]*ShortURL{&short}}
+type URLStorageFile struct {
+	file *os.File
+}
+
+func (u *URLStorageFile) Add(s *ShortURL) {
+	file, _ := os.OpenFile(cfg.FileStoragePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
+	u.file = file
+	json.NewEncoder(u.file).Encode(&s)
+	defer u.file.Close()
+}
+
+func (u *URLStorageFile) Get(id string) (*ShortURL, error) {
+	file, _ := os.OpenFile(cfg.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0777)
+	u.file = file
+	defer u.file.Close()
+	short := &ShortURL{}
+	encoder := json.NewDecoder(u.file)
+	for {
+		err := encoder.Decode(&short)
+		if err != nil {
+			return nil, err
+		}
+		if short.ID == id {
+			return short, nil
+		}
+		if short.ID == "" {
+			break
+		}
+	}
+	return short, errors.New("not found")
+}
+
+func NewStorage() Storage {
+	if cfg.FileStoragePath != "" {
+		return &URLStorageFile{}
+	}
+	var short = ShortURL{"/google", "https://www.google.com/"}
+
+	return &URLStorage{[]*ShortURL{&short}}
+}
+
+var Urls = NewStorage()

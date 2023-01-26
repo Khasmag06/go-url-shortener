@@ -6,15 +6,12 @@ import (
 	"github.com/Khasmag06/go-url-shortener/internal/app/shorten"
 	"github.com/Khasmag06/go-url-shortener/internal/app/storage"
 	"io"
-	"log"
 	"net/http"
 )
 
+var cfg = config.NewConfig()
+
 func PostHandler(w http.ResponseWriter, r *http.Request) {
-	cfg, err := config.NewConfig()
-	if err != nil {
-		log.Fatal(err)
-	}
 	defer r.Body.Close()
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
