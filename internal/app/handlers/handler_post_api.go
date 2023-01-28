@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/Khasmag06/go-url-shortener/config"
 	"github.com/Khasmag06/go-url-shortener/internal/app/shorten"
 	"github.com/Khasmag06/go-url-shortener/internal/app/storage"
 	"net/http"
@@ -26,9 +27,8 @@ func PostAPIHandler(w http.ResponseWriter, r *http.Request) {
 	urlOriginal := u.URL
 	shortURL := storage.ShortURL{ID: short, OriginalURL: urlOriginal}
 	storage.Urls.Add(&shortURL)
-
 	var buf bytes.Buffer
-	shortJSON := JSONShortURL{Result: cfg.BaseURL + short}
+	shortJSON := JSONShortURL{Result: "http://" + config.Cfg.ServerAddress + short}
 	if err := json.NewEncoder(&buf).Encode(shortJSON); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

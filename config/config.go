@@ -20,3 +20,5 @@ func NewConfig() *Config {
 	return &cfg
 
 }
+
+var Cfg = NewConfig()

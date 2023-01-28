@@ -9,8 +9,6 @@ import (
 	"net/http"
 )
 
-var cfg = config.NewConfig()
-
 func PostHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	body, err := io.ReadAll(r.Body)
@@ -24,5 +22,5 @@ func PostHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
-	fmt.Fprint(w, cfg.BaseURL+short)
+	fmt.Fprint(w, "http://"+config.Cfg.ServerAddress+short)
 }

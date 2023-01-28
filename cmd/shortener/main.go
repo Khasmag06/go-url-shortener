@@ -1,8 +1,10 @@
 package main
 
 import (
+	"flag"
 	"github.com/Khasmag06/go-url-shortener/config"
 	"github.com/Khasmag06/go-url-shortener/internal/app/handlers"
+	"github.com/Khasmag06/go-url-shortener/internal/app/storage"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"log"
@@ -10,9 +12,22 @@ import (
 )
 
 func main() {
-	cfg := config.NewConfig()
+	flagServerAddress := flag.String("a", "localhost:8080", "Domain name")
+	flagBaseURL := flag.String("b", "http://localhost:8080", "Net address")
+	flagFileStoragePath := flag.String("f", "", "File name")
+	flag.Parse()
+	if config.Cfg.ServerAddress == "" {
+		config.Cfg.ServerAddress = *flagServerAddress
+	}
+	if config.Cfg.BaseURL == "" {
+		config.Cfg.BaseURL = *flagBaseURL
+	}
+	if config.Cfg.FileStoragePath == "" {
+		config.Cfg.FileStoragePath = *flagFileStoragePath
+	}
+	storage.Urls = storage.NewStorage()
 	r := NewRouter()
-	log.Fatal(http.ListenAndServe(cfg.ServerAddress, r))
+	log.Fatal(http.ListenAndServe(config.Cfg.ServerAddress, r))
 }
 
 func NewRouter() chi.Router {
