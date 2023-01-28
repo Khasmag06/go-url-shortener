@@ -7,8 +7,6 @@ import (
 	"os"
 )
 
-var cfg = config.NewConfig()
-
 type Storage interface {
 	Add(shortURL *ShortURL)
 	Get(id string) (*ShortURL, error)
@@ -42,14 +40,14 @@ type URLStorageFile struct {
 }
 
 func (u *URLStorageFile) Add(s *ShortURL) {
-	file, _ := os.OpenFile(cfg.FileStoragePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
+	file, _ := os.OpenFile(config.Cfg.FileStoragePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
 	u.file = file
 	json.NewEncoder(u.file).Encode(&s)
 	defer u.file.Close()
 }
 
 func (u *URLStorageFile) Get(id string) (*ShortURL, error) {
-	file, _ := os.OpenFile(cfg.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0777)
+	file, _ := os.OpenFile(config.Cfg.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0777)
 	u.file = file
 	defer u.file.Close()
 	short := &ShortURL{}
@@ -70,7 +68,7 @@ func (u *URLStorageFile) Get(id string) (*ShortURL, error) {
 }
 
 func NewStorage() Storage {
-	if cfg.FileStoragePath != "" {
+	if config.Cfg.FileStoragePath != "" {
 		return &URLStorageFile{}
 	}
 	var short = ShortURL{"/google", "https://www.google.com/"}
