@@ -4,6 +4,7 @@ import (
 	"flag"
 	"github.com/Khasmag06/go-url-shortener/config"
 	"github.com/Khasmag06/go-url-shortener/internal/app/handlers"
+	myMiddlewere "github.com/Khasmag06/go-url-shortener/internal/app/middleware"
 	"github.com/Khasmag06/go-url-shortener/internal/app/storage"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -38,6 +39,7 @@ func NewRouter() chi.Router {
 	r.Use(middleware.Recoverer)
 
 	r.Route("/", func(r chi.Router) {
+		r.Use(myMiddlewere.GzipHandle)
 		r.Post("/", handlers.PostHandler)
 		r.Post("/api/shorten", handlers.PostAPIHandler)
 		r.Get("/", handlers.HomeHandler)
