@@ -32,7 +32,7 @@ func (s *Service) PostAPIHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var buf bytes.Buffer
-	shortJSON := JSONShortURL{Result: "http://" + s.cfg.ServerAddress + short}
+	shortJSON := JSONShortURL{Result: s.cfg.BaseURL + short}
 	if err := json.NewEncoder(&buf).Encode(shortJSON); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

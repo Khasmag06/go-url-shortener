@@ -3,6 +3,7 @@ package config
 import (
 	"flag"
 	"github.com/caarlos0/env/v6"
+	"strings"
 )
 
 type Config struct {
@@ -17,10 +18,13 @@ func NewConfig() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	flagServerAddress := flag.String("a", "localhost:8080", "Server address")
-	flagBaseURL := flag.String("b", "http://localhost:8080", "Base url")
-	flagFileStoragePath := flag.String("f", "", "File storage path")
+	flagServerAddress := flag.String("a", cfg.ServerAddress, "Server address")
+	flagBaseURL := flag.String("b", cfg.BaseURL, "Base url")
+	flagFileStoragePath := flag.String("f", cfg.FileStoragePath, "File storage path")
 	flag.Parse()
+	if len(strings.Split(cfg.BaseURL, ":")) < 3 {
+		cfg.BaseURL = "http://" + cfg.BaseURL
+	}
 	if cfg.ServerAddress == "" {
 		cfg.ServerAddress = *flagServerAddress
 	}

@@ -23,5 +23,5 @@ func (s *Service) PostHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
-	fmt.Fprint(w, "http://"+s.cfg.ServerAddress+short)
+	fmt.Fprint(w, s.cfg.BaseURL+short)
 }
