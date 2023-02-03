@@ -1,8 +1,8 @@
 package config
 
 import (
+	"flag"
 	"github.com/caarlos0/env/v6"
-	"log"
 )
 
 type Config struct {
@@ -11,14 +11,25 @@ type Config struct {
 	FileStoragePath string `env:"FILE_STORAGE_PATH" envDefault:""`
 }
 
-func NewConfig() *Config {
+func NewConfig() (*Config, error) {
 	var cfg Config
 	err := env.Parse(&cfg)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	return &cfg
+	flagServerAddress := flag.String("a", "localhost:8080", "Server address")
+	flagBaseURL := flag.String("b", "http://localhost:8080", "Base url")
+	flagFileStoragePath := flag.String("f", "", "File storage path")
+	flag.Parse()
+	if cfg.ServerAddress == "" {
+		cfg.ServerAddress = *flagServerAddress
+	}
+	if cfg.BaseURL == "" {
+		cfg.BaseURL = *flagBaseURL
+	}
+	if cfg.FileStoragePath == "" {
+		cfg.FileStoragePath = *flagFileStoragePath
+	}
+	return &cfg, err
 
 }
-
-var Cfg = NewConfig()

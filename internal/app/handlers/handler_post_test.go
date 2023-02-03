@@ -1,7 +1,9 @@
 package handlers_test
 
 import (
+	"github.com/Khasmag06/go-url-shortener/config"
 	"github.com/Khasmag06/go-url-shortener/internal/app/handlers"
+	"github.com/Khasmag06/go-url-shortener/internal/app/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -33,7 +35,10 @@ func TestPostHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, "/", nil)
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(handlers.PostHandler)
+			cfg, _ := config.NewConfig()
+			repo := storage.NewMemoryStorage()
+			s := handlers.NewService(*cfg, repo)
+			h := http.HandlerFunc(s.PostHandler)
 			h.ServeHTTP(w, request)
 			response := w.Result()
 

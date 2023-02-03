@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"github.com/Khasmag06/go-url-shortener/config"
 	"github.com/Khasmag06/go-url-shortener/internal/app/handlers"
 	myMiddlewere "github.com/Khasmag06/go-url-shortener/internal/app/middleware"
@@ -13,25 +12,23 @@ import (
 )
 
 func main() {
-	flagServerAddress := flag.String("a", "localhost:8080", "Domain name")
-	flagBaseURL := flag.String("b", "http://localhost:8080", "Net address")
-	flagFileStoragePath := flag.String("f", "", "File name")
-	flag.Parse()
-	if config.Cfg.ServerAddress == "" {
-		config.Cfg.ServerAddress = *flagServerAddress
+
+	cfg, err := config.NewConfig()
+	if err != nil {
+		log.Fatal(err)
 	}
-	if config.Cfg.BaseURL == "" {
-		config.Cfg.BaseURL = *flagBaseURL
+
+	repo := storage.NewMemoryStorage()
+	if fp := cfg.FileStoragePath; fp != "" {
+		repo = storage.NewFileStorage(fp)
 	}
-	if config.Cfg.FileStoragePath == "" {
-		config.Cfg.FileStoragePath = *flagFileStoragePath
-	}
-	storage.Urls = storage.NewStorage()
-	r := NewRouter()
-	log.Fatal(http.ListenAndServe(config.Cfg.ServerAddress, r))
+	s := handlers.NewService(*cfg, repo)
+
+	r := NewRouter(s)
+	log.Fatal(http.ListenAndServe(cfg.ServerAddress, r))
 }
 
-func NewRouter() chi.Router {
+func NewRouter(s *handlers.Service) chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
@@ -40,10 +37,10 @@ func NewRouter() chi.Router {
 
 	r.Route("/", func(r chi.Router) {
 		r.Use(myMiddlewere.GzipHandle)
-		r.Post("/", handlers.PostHandler)
-		r.Post("/api/shorten", handlers.PostAPIHandler)
+		r.Post("/", s.PostHandler)
+		r.Post("/api/shorten", s.PostAPIHandler)
 		r.Get("/", handlers.HomeHandler)
-		r.Get("/{id}", handlers.GetHandler)
+		r.Get("/{id}", s.GetHandler)
 	})
 	return r
 }

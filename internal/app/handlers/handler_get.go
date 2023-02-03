@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"github.com/Khasmag06/go-url-shortener/internal/app/storage"
 	"github.com/go-chi/chi/v5"
 	"net/http"
@@ -9,7 +10,7 @@ import (
 
 var ShortIDValid = regexp.MustCompile(`^/([a-zA-Z]{6})$`)
 
-func GetHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Service) GetHandler(w http.ResponseWriter, r *http.Request) {
 	shortID := "/" + chi.URLParam(r, "id")
 
 	if !ShortIDValid.MatchString(shortID) {
@@ -17,8 +18,12 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	url, err := storage.Urls.Get(shortID)
-	if err != nil {
+	url, err := s.repo.GetShortURL(shortID)
+	if err != nil && !errors.Is(err, storage.ErrNotFound) {
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	if errors.Is(err, storage.ErrNotFound) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

@@ -1,9 +1,9 @@
 package middleware
 
 import (
-	"bytes"
 	"compress/gzip"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -19,7 +19,7 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 
 func GzipHandle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+		if r.Header.Get("Content-Encoding") == "gzip" {
 			gz, err := gzip.NewReader(r.Body)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -27,13 +27,7 @@ func GzipHandle(next http.Handler) http.Handler {
 			}
 			defer gz.Close()
 
-			body, err := io.ReadAll(gz)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			r.Body = io.NopCloser(bytes.NewReader(body))
+			r.Body = gz
 		}
 
 		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
@@ -43,7 +37,8 @@ func GzipHandle(next http.Handler) http.Handler {
 
 		gz, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
 		if err != nil {
-			io.WriteString(w, err.Error())
+			log.Printf("unable to create gzip writer from request response writer: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		defer gz.Close()
