@@ -2,38 +2,36 @@ package config
 
 import (
 	"flag"
-	"github.com/caarlos0/env/v6"
-	"strings"
+	"os"
 )
 
 type Config struct {
-	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
-	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080"`
-	FileStoragePath string `env:"FILE_STORAGE_PATH" envDefault:""`
+	ServerAddress   string `json:"server_address"`
+	BaseURL         string `json:"base_url"`
+	FileStoragePath string `json:"file_storage_path"`
 }
 
 func NewConfig() (*Config, error) {
-	var cfg Config
-	err := env.Parse(&cfg)
-	if err != nil {
-		return nil, err
+	cfg := &Config{
+		BaseURL:         "",
+		ServerAddress:   "",
+		FileStoragePath: "",
 	}
-	flagServerAddress := flag.String("a", cfg.ServerAddress, "Server address")
-	flagBaseURL := flag.String("b", cfg.BaseURL, "Base url")
-	flagFileStoragePath := flag.String("f", cfg.FileStoragePath, "File storage path")
+	flag.StringVar(&cfg.ServerAddress, "a", "", "Server address")
+	flag.StringVar(&cfg.BaseURL, "b", "", "Base url")
+	flag.StringVar(&cfg.FileStoragePath, "f", "", "File storage path")
 	flag.Parse()
-	if len(strings.Split(cfg.BaseURL, ":")) < 3 {
-		cfg.BaseURL = "http://" + cfg.BaseURL
-	}
-	if cfg.ServerAddress == "" {
-		cfg.ServerAddress = *flagServerAddress
-	}
-	if cfg.BaseURL == "" {
-		cfg.BaseURL = *flagBaseURL
-	}
-	if cfg.FileStoragePath == "" {
-		cfg.FileStoragePath = *flagFileStoragePath
-	}
-	return &cfg, err
+	cfg.BaseURL = pickFirstNonEmpty(cfg.BaseURL, os.Getenv("BASE_URL"), "http://localhost:8080")
+	cfg.ServerAddress = pickFirstNonEmpty(cfg.ServerAddress, os.Getenv("SERVER_ADDRESS"), ":8080")
+	cfg.FileStoragePath = pickFirstNonEmpty(cfg.FileStoragePath, os.Getenv("FILE_STORAGE_PATH"))
+	return cfg, nil
+}
 
+func pickFirstNonEmpty(strings ...string) string {
+	for _, str := range strings {
+		if str != "" {
+			return str
+		}
+	}
+	return ""
 }

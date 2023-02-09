@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 )
 
@@ -19,66 +20,72 @@ type ShortURL struct {
 	OriginalURL string `json:"originalURL"`
 }
 
-type URLStorage struct {
+type MemStorage struct {
 	urls []*ShortURL
 }
 
-func (u *URLStorage) AddShortURL(s *ShortURL) error {
-	u.urls = append(u.urls, s)
+func (ms *MemStorage) AddShortURL(s *ShortURL) error {
+	ms.urls = append(ms.urls, s)
 	return nil
 
 }
 
-func (u *URLStorage) GetShortURL(id string) (*ShortURL, error) {
-	for _, el := range u.urls {
+func (ms *MemStorage) GetShortURL(id string) (*ShortURL, error) {
+	for _, el := range ms.urls {
 		if el.ID == id {
 			return el, nil
 		}
 	}
-	return &ShortURL{"", ""}, ErrNotFound
-}
-
-type URLStorageFile struct {
-	filepath string
-}
-
-func (u *URLStorageFile) AddShortURL(s *ShortURL) error {
-	file, err := os.OpenFile(u.filepath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
-	if err != nil {
-		return fmt.Errorf("unable to open file: %w", err)
-	}
-	defer file.Close()
-	json.NewEncoder(file).Encode(&s)
-	return nil
-}
-
-func (u *URLStorageFile) GetShortURL(id string) (*ShortURL, error) {
-	file, _ := os.OpenFile(u.filepath, os.O_RDONLY|os.O_CREATE, 0777)
-	defer file.Close()
-	short := &ShortURL{}
-	encoder := json.NewDecoder(file)
-	for {
-		err := encoder.Decode(&short)
-		if err != nil {
-			return nil, err
-		}
-		if short.ID == id {
-			return short, nil
-		}
-		if short.ID == "" {
-			break
-		}
-	}
-	return short, ErrNotFound
+	return nil, ErrNotFound
 }
 
 func NewMemoryStorage() Storage {
-	var short = &ShortURL{"/google", "https://www.google.com/"}
-	return &URLStorage{
+	var short = &ShortURL{"google", "https://www.google.com/"}
+	return &MemStorage{
 		urls: []*ShortURL{short},
 	}
 }
 
-func NewFileStorage(filepath string) Storage {
-	return &URLStorageFile{filepath: filepath}
+type FileStorage struct {
+	*MemStorage
+	f *os.File
+}
+
+func (fs *FileStorage) AddShortURL(s *ShortURL) error {
+
+	if err := fs.MemStorage.AddShortURL(s); err != nil {
+		return fmt.Errorf("unable to add new key in memorystorage: %w", err)
+	}
+
+	err := fs.f.Truncate(0)
+	if err != nil {
+		return fmt.Errorf("unable to truncate file: %w", err)
+	}
+	_, err = fs.f.Seek(0, 0)
+	if err != nil {
+		return fmt.Errorf("unable to get the beginning of file: %w", err)
+	}
+
+	err = json.NewEncoder(fs.f).Encode(&fs.urls)
+	if err != nil {
+		return fmt.Errorf("unable to encode data into the file: %w", err)
+	}
+	return nil
+}
+
+func NewFileStorage(filename string) (Storage, error) {
+	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
+	if err != nil {
+		return nil, fmt.Errorf("unable to open file %s: %w", filename, err)
+	}
+	var short ShortURL
+	urls := []*ShortURL{&short}
+	if err := json.NewDecoder(file).Decode(&urls); err != nil && err != io.EOF {
+		return nil, fmt.Errorf("unable to decode contents of file %s: %w", filename, err)
+	}
+
+	return &FileStorage{
+		MemStorage: &MemStorage{urls: urls},
+		f:          file,
+	}, nil
 }

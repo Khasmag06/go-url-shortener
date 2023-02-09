@@ -17,13 +17,13 @@ type JSONShortURL struct {
 	Result string `json:"result"`
 }
 
-func (s *Service) PostAPIHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Service) PostJSONHandler(w http.ResponseWriter, r *http.Request) {
 	var u JSONOriginalURL
 	if err := json.NewDecoder(r.Body).Decode(&u); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	short := "/" + shorten.URLShorten()
+	short := shorten.URLShorten()
 	urlOriginal := u.URL
 	shortURL := storage.ShortURL{ID: short, OriginalURL: urlOriginal}
 
@@ -32,7 +32,7 @@ func (s *Service) PostAPIHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var buf bytes.Buffer
-	shortJSON := JSONShortURL{Result: s.cfg.BaseURL + short}
+	shortJSON := JSONShortURL{Result: fmt.Sprintf("%s/%s", s.cfg.BaseURL, short)}
 	if err := json.NewEncoder(&buf).Encode(shortJSON); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -40,5 +40,4 @@ func (s *Service) PostAPIHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	w.Write(buf.Bytes())
-
 }

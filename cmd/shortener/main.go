@@ -20,8 +20,12 @@ func main() {
 
 	repo := storage.NewMemoryStorage()
 	if fp := cfg.FileStoragePath; fp != "" {
-		repo = storage.NewFileStorage(fp)
+		repo, err = storage.NewFileStorage(fp)
+		if err != nil {
+			log.Fatalf("unable to create file storage: %v", err)
+		}
 	}
+
 	s := handlers.NewService(*cfg, repo)
 
 	r := NewRouter(s)
@@ -38,7 +42,7 @@ func NewRouter(s *handlers.Service) chi.Router {
 	r.Route("/", func(r chi.Router) {
 		r.Use(myMiddlewere.GzipHandle)
 		r.Post("/", s.PostHandler)
-		r.Post("/api/shorten", s.PostAPIHandler)
+		r.Post("/api/shorten", s.PostJSONHandler)
 		r.Get("/", handlers.HomeHandler)
 		r.Get("/{id}", s.GetHandler)
 	})

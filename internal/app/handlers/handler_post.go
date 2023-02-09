@@ -15,7 +15,7 @@ func (s *Service) PostHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err.Error())
 	}
 	urlOriginal := string(body)
-	short := "/" + shorten.URLShorten()
+	short := shorten.URLShorten()
 	shortURL := storage.ShortURL{ID: short, OriginalURL: urlOriginal}
 	if err := s.repo.AddShortURL(&shortURL); err != nil {
 		fmt.Println(err)
@@ -23,5 +23,5 @@ func (s *Service) PostHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
-	fmt.Fprint(w, s.cfg.BaseURL+short)
+	fmt.Fprintf(w, "%s/%s", s.cfg.BaseURL, short)
 }
