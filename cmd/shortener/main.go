@@ -44,6 +44,7 @@ func NewRouter(s *handlers.Service) chi.Router {
 		r.Post("/", s.PostHandler)
 		r.Get("/", handlers.HomeHandler)
 		r.Get("/{id}", s.GetHandler)
+		r.Get("/ping", s.PingHandler)
 		r.Route("/api", func(r chi.Router) {
 			r.Post("/shorten", s.PostJSONHandler)
 			r.Get("/user/urls", s.GetUserURLsHandler)
