@@ -11,20 +11,23 @@ import (
 var ErrNotFound = errors.New("not found")
 
 type Storage interface {
-	AddShortURL(shortURL *ShortURL) error
-	GetShortURL(id string) (*ShortURL, error)
+	AddShortURL(userID string, shortURL *ShortURL) error
+	GetShortURL(short string) (*ShortURL, error)
+	GetAllShortURL(userID string) []*ShortURL
 }
 
 type ShortURL struct {
-	ID          string `json:"id"`
-	OriginalURL string `json:"originalURL"`
+	ID          string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
 }
 
 type MemStorage struct {
-	urls []*ShortURL
+	userURLs map[string][]*ShortURL
+	urls     []*ShortURL
 }
 
-func (ms *MemStorage) AddShortURL(s *ShortURL) error {
+func (ms *MemStorage) AddShortURL(userID string, s *ShortURL) error {
+	ms.userURLs[userID] = append(ms.userURLs[userID], s)
 	ms.urls = append(ms.urls, s)
 	return nil
 
@@ -39,10 +42,17 @@ func (ms *MemStorage) GetShortURL(id string) (*ShortURL, error) {
 	return nil, ErrNotFound
 }
 
+func (ms *MemStorage) GetAllShortURL(userID string) []*ShortURL {
+	return ms.userURLs[userID]
+}
+
 func NewMemoryStorage() Storage {
 	var short = &ShortURL{"google", "https://www.google.com/"}
+	var userID = "12345"
+	var shortsList = []*ShortURL{short}
 	return &MemStorage{
-		urls: []*ShortURL{short},
+		userURLs: map[string][]*ShortURL{userID: shortsList},
+		urls:     shortsList,
 	}
 }
 
@@ -51,12 +61,10 @@ type FileStorage struct {
 	f *os.File
 }
 
-func (fs *FileStorage) AddShortURL(s *ShortURL) error {
-
-	if err := fs.MemStorage.AddShortURL(s); err != nil {
+func (fs *FileStorage) AddShortURL(userID string, s *ShortURL) error {
+	if err := fs.MemStorage.AddShortURL(userID, s); err != nil {
 		return fmt.Errorf("unable to add new key in memorystorage: %w", err)
 	}
-
 	err := fs.f.Truncate(0)
 	if err != nil {
 		return fmt.Errorf("unable to truncate file: %w", err)
@@ -85,7 +93,7 @@ func NewFileStorage(filename string) (Storage, error) {
 	}
 
 	return &FileStorage{
-		MemStorage: &MemStorage{urls: urls},
+		MemStorage: &MemStorage{urls: urls, userURLs: make(map[string][]*ShortURL)},
 		f:          file,
 	}, nil
 }

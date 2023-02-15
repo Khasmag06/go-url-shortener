@@ -38,13 +38,16 @@ func NewRouter(s *handlers.Service) chi.Router {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(myMiddlewere.GzipHandle, myMiddlewere.CreateAccessToken)
 
 	r.Route("/", func(r chi.Router) {
-		r.Use(myMiddlewere.GzipHandle)
 		r.Post("/", s.PostHandler)
-		r.Post("/api/shorten", s.PostJSONHandler)
 		r.Get("/", handlers.HomeHandler)
 		r.Get("/{id}", s.GetHandler)
+		r.Route("/api", func(r chi.Router) {
+			r.Post("/shorten", s.PostJSONHandler)
+			r.Get("/user/urls", s.GetUserURLsHandler)
+		})
 	})
 	return r
 }

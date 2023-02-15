@@ -14,10 +14,11 @@ func (s *Service) PostHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println(err.Error())
 	}
+	userID := r.Context().Value("userID").(string)
 	urlOriginal := string(body)
 	short := shorten.URLShorten()
 	shortURL := storage.ShortURL{ID: short, OriginalURL: urlOriginal}
-	if err := s.repo.AddShortURL(&shortURL); err != nil {
+	if err := s.repo.AddShortURL(userID, &shortURL); err != nil {
 		fmt.Println(err)
 	}
 

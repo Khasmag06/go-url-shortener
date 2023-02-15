@@ -17,7 +17,6 @@ func (s *Service) GetHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Incorrect parameters, you can only use letters", http.StatusBadRequest)
 		return
 	}
-
 	url, err := s.repo.GetShortURL(shortID)
 	if err != nil && !errors.Is(err, storage.ErrNotFound) {
 		http.Error(w, "internal server error", http.StatusInternalServerError)
