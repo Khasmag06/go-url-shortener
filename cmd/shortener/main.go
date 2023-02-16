@@ -19,7 +19,13 @@ func main() {
 	}
 
 	repo := storage.NewMemoryStorage()
-	if fp := cfg.FileStoragePath; fp != "" {
+	if dsn := cfg.DatabaseDsn; dsn != "" {
+		repo, err = storage.NewDB(dsn)
+		if err != nil {
+			log.Fatalf("unable to create database storage: %v", err)
+		}
+
+	} else if fp := cfg.FileStoragePath; fp != "" {
 		repo, err = storage.NewFileStorage(fp)
 		if err != nil {
 			log.Fatalf("unable to create file storage: %v", err)

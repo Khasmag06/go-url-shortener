@@ -1,9 +1,11 @@
 package storage
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
+	_ "github.com/jackc/pgx/v5"
 	"io"
 	"os"
 )
@@ -95,5 +97,67 @@ func NewFileStorage(filename string) (Storage, error) {
 	return &FileStorage{
 		MemStorage: &MemStorage{urls: urls, userURLs: make(map[string][]*ShortURL)},
 		f:          file,
+	}, nil
+}
+
+type DBStorage struct {
+	*MemStorage
+	db *sql.DB
+}
+
+func (dbs *DBStorage) AddShortURL(userID string, s *ShortURL) error {
+	if err := dbs.MemStorage.AddShortURL(userID, s); err != nil {
+		return fmt.Errorf("unable to add new key in memorystorage: %w", err)
+	}
+	_, err := dbs.db.Exec("INSERT INTO shorts (shortID, originalURL, userID) VALUES ($1, $2, $3)", s.ID, s.OriginalURL, userID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func NewDB(dsn string) (Storage, error) {
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS shorts(shortID text PRIMARY KEY, originalURL text NOT NULL, userID text)")
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := db.Query("SELECT shortID, originalURL, userID from shorts")
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	urls := make([]*ShortURL, 0)
+	userURLs := make(map[string][]*ShortURL)
+	for rows.Next() {
+		var userID string
+		var short ShortURL
+		err = rows.Scan(&short.ID, &short.OriginalURL, &userID)
+		if err != nil {
+			return nil, err
+		}
+
+		urls = append(urls, &short)
+		userURLs[userID] = append(userURLs[userID], &short)
+
+	}
+	if err = db.Ping(); err != nil {
+		return nil, err
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	return &DBStorage{
+		MemStorage: &MemStorage{urls: urls, userURLs: userURLs},
+		db:         db,
 	}, nil
 }
