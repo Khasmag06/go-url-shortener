@@ -12,7 +12,6 @@ var ShortIDValid = regexp.MustCompile(`^([a-zA-Z]{6})$`)
 
 func (s *Service) GetHandler(w http.ResponseWriter, r *http.Request) {
 	shortID := chi.URLParam(r, "id")
-
 	if !ShortIDValid.MatchString(shortID) {
 		http.Error(w, "Incorrect parameters, you can only use letters", http.StatusBadRequest)
 		return

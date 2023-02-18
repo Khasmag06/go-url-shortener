@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	_ "github.com/jackc/pgx/v5"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"io"
 	"os"
 )
@@ -15,21 +15,21 @@ var ErrNotFound = errors.New("not found")
 type Storage interface {
 	AddShortURL(userID string, shortURL *ShortURL) error
 	GetShortURL(short string) (*ShortURL, error)
-	GetAllShortURL(userID string) []*ShortURL
+	GetAllShortURL(userID string) ([]*ShortURL, error)
 }
 
 type ShortURL struct {
 	ID          string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
+	UserID      string `json:"-"`
 }
 
 type MemStorage struct {
-	userURLs map[string][]*ShortURL
-	urls     []*ShortURL
+	urls []*ShortURL
 }
 
 func (ms *MemStorage) AddShortURL(userID string, s *ShortURL) error {
-	ms.userURLs[userID] = append(ms.userURLs[userID], s)
+	s.UserID = userID
 	ms.urls = append(ms.urls, s)
 	return nil
 
@@ -44,17 +44,20 @@ func (ms *MemStorage) GetShortURL(id string) (*ShortURL, error) {
 	return nil, ErrNotFound
 }
 
-func (ms *MemStorage) GetAllShortURL(userID string) []*ShortURL {
-	return ms.userURLs[userID]
+func (ms *MemStorage) GetAllShortURL(userID string) ([]*ShortURL, error) {
+	var userShorts []*ShortURL
+	for _, el := range ms.urls {
+		if el.UserID == userID {
+			userShorts = append(userShorts, el)
+		}
+	}
+	return userShorts, nil
 }
 
 func NewMemoryStorage() Storage {
-	var short = &ShortURL{"google", "https://www.google.com/"}
-	var userID = "12345"
-	var shortsList = []*ShortURL{short}
+	var short = &ShortURL{"google", "https://www.google.com/", "12345"}
 	return &MemStorage{
-		userURLs: map[string][]*ShortURL{userID: shortsList},
-		urls:     shortsList,
+		urls: []*ShortURL{short},
 	}
 }
 
@@ -95,20 +98,16 @@ func NewFileStorage(filename string) (Storage, error) {
 	}
 
 	return &FileStorage{
-		MemStorage: &MemStorage{urls: urls, userURLs: make(map[string][]*ShortURL)},
+		MemStorage: &MemStorage{urls: urls},
 		f:          file,
 	}, nil
 }
 
 type DBStorage struct {
-	*MemStorage
 	db *sql.DB
 }
 
 func (dbs *DBStorage) AddShortURL(userID string, s *ShortURL) error {
-	if err := dbs.MemStorage.AddShortURL(userID, s); err != nil {
-		return fmt.Errorf("unable to add new key in memorystorage: %w", err)
-	}
 	_, err := dbs.db.Exec("INSERT INTO shorts (shortID, originalURL, userID) VALUES ($1, $2, $3)", s.ID, s.OriginalURL, userID)
 	if err != nil {
 		return err
@@ -116,48 +115,52 @@ func (dbs *DBStorage) AddShortURL(userID string, s *ShortURL) error {
 	return nil
 }
 
+func (dbs *DBStorage) GetShortURL(id string) (*ShortURL, error) {
+	var short ShortURL
+	row := dbs.db.QueryRow("SELECT shortID, originalURL FROM shorts WHERE shortID = $1", id)
+	err := row.Scan(&short.ID, &short.OriginalURL)
+	if err != nil {
+		return nil, ErrNotFound
+	}
+	return &short, nil
+}
+
+func (dbs *DBStorage) GetAllShortURL(userID string) ([]*ShortURL, error) {
+	rows, err := dbs.db.Query("SELECT shortID, originalURL FROM shorts WHERE userID = $1", userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	urls := make([]*ShortURL, 0)
+	for rows.Next() {
+		var short ShortURL
+		err = rows.Scan(&short.ID, &short.OriginalURL)
+		if err != nil {
+			return nil, err
+		}
+
+		urls = append(urls, &short)
+
+	}
+	return urls, nil
+}
+
 func NewDB(dsn string) (Storage, error) {
-	db, err := sql.Open("postgres", dsn)
+	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
 
 	_, err = db.Exec("CREATE TABLE IF NOT EXISTS shorts(shortID text PRIMARY KEY, originalURL text NOT NULL, userID text)")
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := db.Query("SELECT shortID, originalURL, userID from shorts")
-	if err != nil {
-		return nil, err
-	}
-
-	defer rows.Close()
-	urls := make([]*ShortURL, 0)
-	userURLs := make(map[string][]*ShortURL)
-	for rows.Next() {
-		var userID string
-		var short ShortURL
-		err = rows.Scan(&short.ID, &short.OriginalURL, &userID)
-		if err != nil {
-			return nil, err
-		}
-
-		urls = append(urls, &short)
-		userURLs[userID] = append(userURLs[userID], &short)
-
-	}
 	if err = db.Ping(); err != nil {
 		return nil, err
 	}
 
-	err = rows.Err()
-	if err != nil {
-		return nil, err
-	}
 	return &DBStorage{
-		MemStorage: &MemStorage{urls: urls, userURLs: userURLs},
-		db:         db,
+		db: db,
 	}, nil
 }

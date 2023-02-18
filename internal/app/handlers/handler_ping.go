@@ -3,13 +3,13 @@ package handlers
 import (
 	"context"
 	"database/sql"
-	_ "github.com/jackc/pgx/v5"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"net/http"
 	"time"
 )
 
 func (s *Service) PingHandler(w http.ResponseWriter, r *http.Request) {
-	db, err := sql.Open("postgres", s.cfg.DatabaseDsn)
+	db, err := sql.Open("pgx", s.cfg.DatabaseDsn)
 	if err != nil {
 		panic(err)
 	}
