@@ -53,6 +53,7 @@ func NewRouter(s *handlers.Service) chi.Router {
 		r.Get("/ping", s.PingHandler)
 		r.Route("/api", func(r chi.Router) {
 			r.Post("/shorten", s.PostJSONHandler)
+			r.Post("/shorten/batch", s.BatchHandler)
 			r.Get("/user/urls", s.GetUserURLsHandler)
 		})
 	})
