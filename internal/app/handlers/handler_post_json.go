@@ -23,11 +23,12 @@ func (s *Service) PostJSONHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	userID := r.Context().Value("userID").(string)
 	short := shorten.URLShorten()
 	urlOriginal := u.URL
 	shortURL := storage.ShortURL{ID: short, OriginalURL: urlOriginal}
 
-	if err := s.repo.AddShortURL(&shortURL); err != nil {
+	if err := s.repo.AddShortURL(userID, &shortURL); err != nil {
 		fmt.Println(err)
 	}
 

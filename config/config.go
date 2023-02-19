@@ -2,36 +2,27 @@ package config
 
 import (
 	"flag"
-	"os"
+	"github.com/caarlos0/env/v6"
 )
 
 type Config struct {
-	ServerAddress   string `json:"server_address"`
-	BaseURL         string `json:"base_url"`
-	FileStoragePath string `json:"file_storage_path"`
+	ServerAddress   string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
+	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH" envDefault:""`
+	DatabaseDsn     string `env:"DATABASE_DSN"`
 }
 
 func NewConfig() (*Config, error) {
-	cfg := &Config{
-		BaseURL:         "",
-		ServerAddress:   "",
-		FileStoragePath: "",
+	var cfg Config
+	err := env.Parse(&cfg)
+	if err != nil {
+		return nil, err
 	}
-	flag.StringVar(&cfg.ServerAddress, "a", "", "Server address")
-	flag.StringVar(&cfg.BaseURL, "b", "", "Base url")
-	flag.StringVar(&cfg.FileStoragePath, "f", "", "File storage path")
+	flag.StringVar(&cfg.ServerAddress, "a", cfg.ServerAddress, "Server address")
+	flag.StringVar(&cfg.BaseURL, "b", cfg.BaseURL, "Base URL")
+	flag.StringVar(&cfg.FileStoragePath, "f", cfg.FileStoragePath, "File Storage Path")
+	flag.StringVar(&cfg.DatabaseDsn, "d", cfg.DatabaseDsn, "Database DSN")
 	flag.Parse()
-	cfg.BaseURL = pickFirstNonEmpty(cfg.BaseURL, os.Getenv("BASE_URL"), "http://localhost:8080")
-	cfg.ServerAddress = pickFirstNonEmpty(cfg.ServerAddress, os.Getenv("SERVER_ADDRESS"), ":8080")
-	cfg.FileStoragePath = pickFirstNonEmpty(cfg.FileStoragePath, os.Getenv("FILE_STORAGE_PATH"))
-	return cfg, nil
-}
+	return &cfg, err
 
-func pickFirstNonEmpty(strings ...string) string {
-	for _, str := range strings {
-		if str != "" {
-			return str
-		}
-	}
-	return ""
 }

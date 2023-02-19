@@ -1,9 +1,11 @@
 package storage
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"io"
 	"os"
 )
@@ -11,20 +13,23 @@ import (
 var ErrNotFound = errors.New("not found")
 
 type Storage interface {
-	AddShortURL(shortURL *ShortURL) error
-	GetShortURL(id string) (*ShortURL, error)
+	AddShortURL(userID string, shortURL *ShortURL) error
+	GetShortURL(short string) (*ShortURL, error)
+	GetAllShortURL(userID string) ([]*ShortURL, error)
 }
 
 type ShortURL struct {
-	ID          string `json:"id"`
-	OriginalURL string `json:"originalURL"`
+	ID          string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
+	UserID      string `json:"-"`
 }
 
 type MemStorage struct {
 	urls []*ShortURL
 }
 
-func (ms *MemStorage) AddShortURL(s *ShortURL) error {
+func (ms *MemStorage) AddShortURL(userID string, s *ShortURL) error {
+	s.UserID = userID
 	ms.urls = append(ms.urls, s)
 	return nil
 
@@ -39,8 +44,18 @@ func (ms *MemStorage) GetShortURL(id string) (*ShortURL, error) {
 	return nil, ErrNotFound
 }
 
+func (ms *MemStorage) GetAllShortURL(userID string) ([]*ShortURL, error) {
+	var userShorts []*ShortURL
+	for _, el := range ms.urls {
+		if el.UserID == userID {
+			userShorts = append(userShorts, el)
+		}
+	}
+	return userShorts, nil
+}
+
 func NewMemoryStorage() Storage {
-	var short = &ShortURL{"google", "https://www.google.com/"}
+	var short = &ShortURL{"google", "https://www.google.com/", "12345"}
 	return &MemStorage{
 		urls: []*ShortURL{short},
 	}
@@ -51,12 +66,10 @@ type FileStorage struct {
 	f *os.File
 }
 
-func (fs *FileStorage) AddShortURL(s *ShortURL) error {
-
-	if err := fs.MemStorage.AddShortURL(s); err != nil {
+func (fs *FileStorage) AddShortURL(userID string, s *ShortURL) error {
+	if err := fs.MemStorage.AddShortURL(userID, s); err != nil {
 		return fmt.Errorf("unable to add new key in memorystorage: %w", err)
 	}
-
 	err := fs.f.Truncate(0)
 	if err != nil {
 		return fmt.Errorf("unable to truncate file: %w", err)
@@ -87,5 +100,67 @@ func NewFileStorage(filename string) (Storage, error) {
 	return &FileStorage{
 		MemStorage: &MemStorage{urls: urls},
 		f:          file,
+	}, nil
+}
+
+type DBStorage struct {
+	db *sql.DB
+}
+
+func (dbs *DBStorage) AddShortURL(userID string, s *ShortURL) error {
+	_, err := dbs.db.Exec("INSERT INTO shorts (shortID, originalURL, userID) VALUES ($1, $2, $3)", s.ID, s.OriginalURL, userID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (dbs *DBStorage) GetShortURL(id string) (*ShortURL, error) {
+	var short ShortURL
+	row := dbs.db.QueryRow("SELECT shortID, originalURL FROM shorts WHERE shortID = $1", id)
+	err := row.Scan(&short.ID, &short.OriginalURL)
+	if err != nil {
+		return nil, ErrNotFound
+	}
+	return &short, nil
+}
+
+func (dbs *DBStorage) GetAllShortURL(userID string) ([]*ShortURL, error) {
+	rows, err := dbs.db.Query("SELECT shortID, originalURL FROM shorts WHERE userID = $1", userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	urls := make([]*ShortURL, 0)
+	for rows.Next() {
+		var short ShortURL
+		err = rows.Scan(&short.ID, &short.OriginalURL)
+		if err != nil {
+			return nil, err
+		}
+
+		urls = append(urls, &short)
+
+	}
+	return urls, nil
+}
+
+func NewDB(dsn string) (Storage, error) {
+	db, err := sql.Open("pgx", dsn)
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS shorts(shortID text PRIMARY KEY, originalURL text NOT NULL, userID text)")
+	if err != nil {
+		return nil, err
+	}
+
+	if err = db.Ping(); err != nil {
+		return nil, err
+	}
+
+	return &DBStorage{
+		db: db,
 	}, nil
 }
