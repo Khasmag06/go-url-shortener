@@ -5,17 +5,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"io"
 	"os"
 )
 
 var ErrNotFound = errors.New("not found")
+var ErrExistsURL = errors.New("url already exists")
 
 type Storage interface {
 	AddShortURL(userID string, shortURL *ShortURL) error
 	GetShortURL(short string) (*ShortURL, error)
 	GetAllShortURL(userID string) ([]*ShortURL, error)
+	GetExistURL(originalURL string) (string, error)
 }
 
 type ShortURL struct {
@@ -52,6 +56,10 @@ func (ms *MemStorage) GetAllShortURL(userID string) ([]*ShortURL, error) {
 		}
 	}
 	return userShorts, nil
+}
+
+func (ms *MemStorage) GetExistURL(originalURL string) (string, error) {
+	return "", nil
 }
 
 func NewMemoryStorage() Storage {
@@ -110,6 +118,10 @@ type DBStorage struct {
 func (dbs *DBStorage) AddShortURL(userID string, s *ShortURL) error {
 	_, err := dbs.db.Exec("INSERT INTO shorts (shortID, originalURL, userID) VALUES ($1, $2, $3)", s.ID, s.OriginalURL, userID)
 	if err != nil {
+		var e *pgconn.PgError
+		if errors.As(err, &e) && e.Code == pgerrcode.UniqueViolation {
+			return ErrExistsURL
+		}
 		return err
 	}
 	return nil
@@ -142,16 +154,30 @@ func (dbs *DBStorage) GetAllShortURL(userID string) ([]*ShortURL, error) {
 		urls = append(urls, &short)
 
 	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
 	return urls, nil
+}
+
+func (dbs *DBStorage) GetExistURL(originalURL string) (string, error) {
+	var short string
+	row := dbs.db.QueryRow("SELECT shortID FROM shorts WHERE originalURL = $1", originalURL)
+	err := row.Scan(&short)
+	if err != nil {
+		return "", err
+	}
+	return short, nil
 }
 
 func NewDB(dsn string) (Storage, error) {
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("unable to open sql connection: %w", err)
 	}
 
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS shorts(shortID text PRIMARY KEY, originalURL text NOT NULL, userID text)")
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS shorts(shortID text PRIMARY KEY, originalURL text UNIQUE, userID text)")
 	if err != nil {
 		return nil, err
 	}

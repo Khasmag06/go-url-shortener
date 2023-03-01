@@ -7,21 +7,34 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"github.com/google/uuid"
 	"io"
+	"log"
 	"net/http"
 )
 
-var key = sha256.Sum256([]byte("Secret key"))
+var aesGcm cipher.AEAD
 
-//var session = map[string]struct{}{"12345": {}}
+func init() {
+	var err error
+	aesGcm, err = createGcm()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+type userIDKeyType string
+
+const UserIDKey userIDKeyType = "userID"
+
+var key = sha256.Sum256([]byte("Secret key"))
 
 func CreateAccessToken(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("token")
 		if err == http.ErrNoCookie {
 			userID := uuid.NewString()
-			//session[userID] = struct{}{}
 			cookie = &http.Cookie{
 				Name:   "token",
 				Value:  encrypt(userID),
@@ -29,38 +42,30 @@ func CreateAccessToken(next http.Handler) http.Handler {
 				MaxAge: 300,
 			}
 		}
-
-		//if _, ok := session[decrypt(cookie.Value)]; !ok {
-		//	userID := uuid.NewString()
-		//	session[userID] = struct{}{}
-		//	cookie = &http.Cookie{
-		//		Name:   "token",
-		//		Value:  encrypt(userID),
-		//		Path:   "/",
-		//		MaxAge: 300,
-		//	}
-		//}
 		http.SetCookie(w, cookie)
-		ctx := context.WithValue(r.Context(), "userID", decrypt(cookie.Value))
+		cookieDecrypt, err := decrypt(cookie.Value)
+		if err != nil {
+			log.Fatal(err)
+		}
+		ctx := context.WithValue(r.Context(), UserIDKey, cookieDecrypt)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 
 }
 
-func createGcm() cipher.AEAD {
+func createGcm() (cipher.AEAD, error) {
 	aesBlock, err := aes.NewCipher(key[:])
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("unable to initialize new cipher: %w", err)
 	}
 	aesGcm, err := cipher.NewGCM(aesBlock)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("unable to initialize new GCM: %w", err)
 	}
-	return aesGcm
+	return aesGcm, nil
 }
 
 func encrypt(data string) string {
-	aesGcm := createGcm()
 	nonce := make([]byte, aesGcm.NonceSize())
 	io.ReadFull(rand.Reader, nonce)
 	ciphertext := aesGcm.Seal(nonce, nonce, []byte(data), nil)
@@ -68,18 +73,17 @@ func encrypt(data string) string {
 
 }
 
-func decrypt(encrypt string) string {
-	aesGcm := createGcm()
+func decrypt(encrypt string) (string, error) {
 	data, err := hex.DecodeString(encrypt)
 	if err != nil {
-		panic(err)
+		return "", fmt.Errorf("unable to decode string: %w", err)
 	}
 	nonceSize := aesGcm.NonceSize()
 	nonce, ciphertext := data[:nonceSize], data[nonceSize:]
 	plaintext, err := aesGcm.Open(nil, nonce, ciphertext, nil)
 	if err != nil {
-		panic(err)
+		return "", fmt.Errorf("unable to get encrypted data: %w", err)
 	}
-	return string(plaintext)
+	return string(plaintext), nil
 
 }

@@ -10,6 +10,7 @@ type Config struct {
 	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH" envDefault:""`
 	DatabaseDsn     string `env:"DATABASE_DSN"`
+	//DatabaseDsn     string `env:"DATABASE_DSN" envDefault:"postgres://localhost:5432/postgres?sslmode=disable"`
 }
 
 func NewConfig() (*Config, error) {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/Khasmag06/go-url-shortener/internal/app/middleware"
 	"github.com/Khasmag06/go-url-shortener/internal/app/shorten"
 	"github.com/Khasmag06/go-url-shortener/internal/app/storage"
 	"net/http"
@@ -26,13 +27,14 @@ func (s *Service) BatchHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	userID := r.Context().Value("userID").(string)
+	userID := r.Context().Value(middleware.UserIDKey).(string)
 	batchResp := make([]JSONBatchResp, len(batchReq))
 	for i, el := range batchReq {
 		short := shorten.URLShorten()
 		shortURL := storage.ShortURL{ID: short, OriginalURL: el.OriginalURL}
 		if err := s.repo.AddShortURL(userID, &shortURL); err != nil {
-			fmt.Println(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 		batchResp[i].CorID = el.CorID
 		batchResp[i].ShortURL = fmt.Sprintf("%s/%s", s.cfg.BaseURL, short)
