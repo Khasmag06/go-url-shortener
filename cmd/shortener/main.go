@@ -55,6 +55,7 @@ func NewRouter(s *handlers.Service) chi.Router {
 			r.Post("/shorten", s.PostJSONHandler)
 			r.Post("/shorten/batch", s.BatchHandler)
 			r.Get("/user/urls", s.GetUserURLsHandler)
+			r.Delete("/user/urls", s.DeleteHandler)
 		})
 	})
 	return r

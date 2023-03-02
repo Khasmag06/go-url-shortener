@@ -14,12 +14,14 @@ import (
 
 var ErrNotFound = errors.New("not found")
 var ErrExistsURL = errors.New("url already exists")
+var ErrNotAvailable = errors.New("url removed")
 
 type Storage interface {
 	AddShortURL(userID string, shortURL *ShortURL) error
 	GetShortURL(short string) (*ShortURL, error)
 	GetAllShortURL(userID string) ([]*ShortURL, error)
 	GetExistURL(originalURL string) (string, error)
+	DeleteShortURL(userID, shortID string) error
 }
 
 type ShortURL struct {
@@ -60,6 +62,10 @@ func (ms *MemStorage) GetAllShortURL(userID string) ([]*ShortURL, error) {
 
 func (ms *MemStorage) GetExistURL(originalURL string) (string, error) {
 	return "", nil
+}
+
+func (ms *MemStorage) DeleteShortURL(userID, shortURL string) error {
+	return nil
 }
 
 func NewMemoryStorage() Storage {
@@ -129,10 +135,14 @@ func (dbs *DBStorage) AddShortURL(userID string, s *ShortURL) error {
 
 func (dbs *DBStorage) GetShortURL(id string) (*ShortURL, error) {
 	var short ShortURL
-	row := dbs.db.QueryRow("SELECT shortID, originalURL FROM shorts WHERE shortID = $1", id)
-	err := row.Scan(&short.ID, &short.OriginalURL)
+	var isPublished bool
+	row := dbs.db.QueryRow("SELECT shortID, originalURL, is_published FROM shorts WHERE shortID = $1", id)
+	err := row.Scan(&short.ID, &short.OriginalURL, &isPublished)
 	if err != nil {
 		return nil, ErrNotFound
+	}
+	if !isPublished {
+		return nil, ErrNotAvailable
 	}
 	return &short, nil
 }
@@ -171,13 +181,26 @@ func (dbs *DBStorage) GetExistURL(originalURL string) (string, error) {
 	return short, nil
 }
 
+func (dbs *DBStorage) DeleteShortURL(userID, shortID string) error {
+	_, err := dbs.db.Exec("UPDATE shorts SET is_published=false WHERE userID = $1 AND shortID = $2", userID, shortID)
+	if err != nil {
+		return fmt.Errorf("unable to delete URL with %s: %w", shortID, err)
+	}
+	return nil
+}
+
 func NewDB(dsn string) (Storage, error) {
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("unable to open sql connection: %w", err)
 	}
 
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS shorts(shortID text PRIMARY KEY, originalURL text UNIQUE, userID text)")
+	query := `CREATE TABLE IF NOT EXISTS shorts(shortID text PRIMARY KEY, 
+										 originalURL text UNIQUE,
+										 userID text,
+                                         is_published BOOLEAN NOT NULL DEFAULT true)`
+
+	_, err = db.Exec(query)
 	if err != nil {
 		return nil, err
 	}
