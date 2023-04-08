@@ -5,7 +5,6 @@ import (
 	"github.com/Khasmag06/go-url-shortener/internal/app/middleware"
 	"log"
 	"net/http"
-	"runtime"
 )
 
 type userShort struct {
@@ -24,12 +23,13 @@ func (s *Service) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	ch := make(chan userShort, len(shortIDs))
 
-	for i := 0; i <= runtime.NumCPU(); i++ {
+	for i := 0; i <= 100; i++ {
 		go func(ch <-chan userShort) {
 			for el := range ch {
 				err := s.repo.DeleteShortURL(el.userID, el.shortID)
 				if err != nil {
-					log.Fatal(err)
+					log.Println(err)
+					continue
 				}
 			}
 		}(ch)

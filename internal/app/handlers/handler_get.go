@@ -35,7 +35,3 @@ func (s *Service) GetHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Location", url.OriginalURL)
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
-
-func HomeHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Home page"))
-}
