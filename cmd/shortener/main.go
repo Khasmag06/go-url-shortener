@@ -5,8 +5,10 @@ import (
 	"github.com/Khasmag06/go-url-shortener/internal/app/handlers"
 	"github.com/Khasmag06/go-url-shortener/internal/app/storage"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"log"
 	"net/http"
+	_ "net/http/pprof" // подключаем пакет pprof
 )
 
 func main() {
@@ -33,6 +35,7 @@ func main() {
 	s := handlers.NewService(*cfg, repo)
 	r := chi.NewRouter()
 	r.Mount("/", s.Route())
+	r.Mount("/debug", middleware.Profiler())
 
 	log.Fatal(http.ListenAndServe(cfg.ServerAddress, r))
 }
