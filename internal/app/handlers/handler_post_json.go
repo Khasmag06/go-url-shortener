@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
+
 	"github.com/Khasmag06/go-url-shortener/internal/app/middleware"
 	"github.com/Khasmag06/go-url-shortener/internal/app/shorten"
 	"github.com/Khasmag06/go-url-shortener/internal/app/storage"
-	"log"
-	"net/http"
 )
 
 type JSONOriginalURL struct {

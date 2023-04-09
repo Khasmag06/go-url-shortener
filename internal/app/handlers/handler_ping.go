@@ -3,9 +3,10 @@ package handlers
 import (
 	"context"
 	"database/sql"
-	_ "github.com/jackc/pgx/v5/stdlib"
 	"net/http"
 	"time"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 func (s *Service) PingHandler(w http.ResponseWriter, r *http.Request) {

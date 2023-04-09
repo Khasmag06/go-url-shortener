@@ -1,13 +1,15 @@
 package main
 
 import (
+	"io"
+	"log"
+
 	"github.com/Khasmag06/go-url-shortener/config"
 	"github.com/Khasmag06/go-url-shortener/internal/app/handlers"
 	"github.com/Khasmag06/go-url-shortener/internal/app/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"io"
-	"log"
+
 	"net/http"
 	"net/http/httptest"
 	"testing"

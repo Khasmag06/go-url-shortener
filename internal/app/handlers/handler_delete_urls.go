@@ -2,9 +2,10 @@ package handlers
 
 import (
 	"encoding/json"
-	"github.com/Khasmag06/go-url-shortener/internal/app/middleware"
 	"log"
 	"net/http"
+
+	"github.com/Khasmag06/go-url-shortener/internal/app/middleware"
 )
 
 type userShort struct {

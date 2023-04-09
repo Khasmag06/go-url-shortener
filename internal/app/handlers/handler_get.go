@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"errors"
-	"github.com/Khasmag06/go-url-shortener/internal/app/storage"
-	"github.com/go-chi/chi/v5"
 	"net/http"
 	"regexp"
+
+	"github.com/Khasmag06/go-url-shortener/internal/app/storage"
+	"github.com/go-chi/chi/v5"
 )
 
 var ShortIDValid = regexp.MustCompile(`^([a-zA-Z]{6})$`)
@@ -30,6 +31,7 @@ func (s *Service) GetHandler(w http.ResponseWriter, r *http.Request) {
 	if errors.Is(err, storage.ErrNotFound) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
+
 	}
 
 	w.Header().Set("Location", url.OriginalURL)

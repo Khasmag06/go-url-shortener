@@ -1,14 +1,15 @@
 package main
 
 import (
+	"log"
+	"net/http"
+	_ "net/http/pprof" // подключаем пакет pprof
+
 	"github.com/Khasmag06/go-url-shortener/config"
 	"github.com/Khasmag06/go-url-shortener/internal/app/handlers"
 	"github.com/Khasmag06/go-url-shortener/internal/app/storage"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"log"
-	"net/http"
-	_ "net/http/pprof" // подключаем пакет pprof
 )
 
 func main() {

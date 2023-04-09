@@ -1,16 +1,17 @@
 package handlers
 
 import (
-	"github.com/Khasmag06/go-url-shortener/config"
-	"github.com/Khasmag06/go-url-shortener/internal/app/middleware"
-	"github.com/Khasmag06/go-url-shortener/internal/app/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
 	"testing"
+
+	"github.com/Khasmag06/go-url-shortener/config"
+	"github.com/Khasmag06/go-url-shortener/internal/app/middleware"
+	"github.com/Khasmag06/go-url-shortener/internal/app/storage"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPostHandler(t *testing.T) {

@@ -3,12 +3,13 @@ package handlers
 import (
 	"errors"
 	"fmt"
-	"github.com/Khasmag06/go-url-shortener/internal/app/middleware"
-	"github.com/Khasmag06/go-url-shortener/internal/app/shorten"
-	"github.com/Khasmag06/go-url-shortener/internal/app/storage"
 	"io"
 	"log"
 	"net/http"
+
+	"github.com/Khasmag06/go-url-shortener/internal/app/middleware"
+	"github.com/Khasmag06/go-url-shortener/internal/app/shorten"
+	"github.com/Khasmag06/go-url-shortener/internal/app/storage"
 )
 
 func (s *Service) PostHandler(w http.ResponseWriter, r *http.Request) {
