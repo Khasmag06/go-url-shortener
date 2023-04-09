@@ -17,10 +17,16 @@ func (s *Service) GetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	url, err := s.repo.GetShortURL(shortID)
+
+	if err != nil && errors.Is(err, storage.ErrNotAvailable) {
+		http.Error(w, err.Error(), http.StatusGone)
+		return
+	}
 	if err != nil && !errors.Is(err, storage.ErrNotFound) {
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
+
 	if errors.Is(err, storage.ErrNotFound) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -28,8 +34,4 @@ func (s *Service) GetHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Location", url.OriginalURL)
 	w.WriteHeader(http.StatusTemporaryRedirect)
-}
-
-func HomeHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Home page"))
 }

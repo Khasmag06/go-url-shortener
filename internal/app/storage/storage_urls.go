@@ -14,18 +14,21 @@ import (
 
 var ErrNotFound = errors.New("not found")
 var ErrExistsURL = errors.New("url already exists")
+var ErrNotAvailable = errors.New("url removed")
 
 type Storage interface {
 	AddShortURL(userID string, shortURL *ShortURL) error
 	GetShortURL(short string) (*ShortURL, error)
 	GetAllShortURL(userID string) ([]*ShortURL, error)
 	GetExistURL(originalURL string) (string, error)
+	DeleteShortURL(userID, shortID string) error
 }
 
 type ShortURL struct {
 	ID          string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
 	UserID      string `json:"-"`
+	IsDeleted   bool   `json:"-"`
 }
 
 type MemStorage struct {
@@ -42,9 +45,14 @@ func (ms *MemStorage) AddShortURL(userID string, s *ShortURL) error {
 func (ms *MemStorage) GetShortURL(id string) (*ShortURL, error) {
 	for _, el := range ms.urls {
 		if el.ID == id {
-			return el, nil
+			if !el.IsDeleted {
+				return el, nil
+			} else {
+				return nil, ErrNotAvailable
+			}
 		}
 	}
+
 	return nil, ErrNotFound
 }
 
@@ -62,8 +70,18 @@ func (ms *MemStorage) GetExistURL(originalURL string) (string, error) {
 	return "", nil
 }
 
+func (ms *MemStorage) DeleteShortURL(userID, shortURL string) error {
+	for _, el := range ms.urls {
+		if el.UserID == userID && el.ID == shortURL {
+			el.IsDeleted = true
+			return nil
+		}
+	}
+	return nil
+}
+
 func NewMemoryStorage() Storage {
-	var short = &ShortURL{"google", "https://www.google.com/", "12345"}
+	var short = &ShortURL{"google", "https://www.google.com/", "12345", false}
 	return &MemStorage{
 		urls: []*ShortURL{short},
 	}
@@ -129,10 +147,13 @@ func (dbs *DBStorage) AddShortURL(userID string, s *ShortURL) error {
 
 func (dbs *DBStorage) GetShortURL(id string) (*ShortURL, error) {
 	var short ShortURL
-	row := dbs.db.QueryRow("SELECT shortID, originalURL FROM shorts WHERE shortID = $1", id)
-	err := row.Scan(&short.ID, &short.OriginalURL)
+	row := dbs.db.QueryRow("SELECT shortID, originalURL, is_deleted FROM shorts WHERE shortID = $1", id)
+	err := row.Scan(&short.ID, &short.OriginalURL, &short.IsDeleted)
 	if err != nil {
 		return nil, ErrNotFound
+	}
+	if short.IsDeleted {
+		return nil, ErrNotAvailable
 	}
 	return &short, nil
 }
@@ -171,13 +192,26 @@ func (dbs *DBStorage) GetExistURL(originalURL string) (string, error) {
 	return short, nil
 }
 
+func (dbs *DBStorage) DeleteShortURL(userID, shortID string) error {
+	_, err := dbs.db.Exec("UPDATE shorts SET is_deleted=true WHERE userID = $1 AND shortID = $2", userID, shortID)
+	if err != nil {
+		return fmt.Errorf("unable to delete URL with %s: %w", shortID, err)
+	}
+	return nil
+}
+
 func NewDB(dsn string) (Storage, error) {
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("unable to open sql connection: %w", err)
 	}
 
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS shorts(shortID text PRIMARY KEY, originalURL text UNIQUE, userID text)")
+	query := `CREATE TABLE IF NOT EXISTS shorts(shortID text PRIMARY KEY, 
+										 originalURL text UNIQUE,
+										 userID text,
+                                         is_deleted BOOLEAN NOT NULL DEFAULT false)`
+
+	_, err = db.Exec(query)
 	if err != nil {
 		return nil, err
 	}

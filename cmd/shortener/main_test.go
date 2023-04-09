@@ -20,7 +20,7 @@ func TestRouter(t *testing.T) {
 	}
 	repo := storage.NewMemoryStorage()
 	s := handlers.NewService(*cfg, repo)
-	r := NewRouter(s)
+	r := s.Route()
 	ts := httptest.NewServer(r)
 	defer ts.Close()
 
