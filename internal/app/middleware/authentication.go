@@ -27,10 +27,12 @@ func init() {
 
 type userIDKeyType string
 
+// UserIDKey ключ для передачи значения контекста.
 const UserIDKey userIDKeyType = "userID"
 
 var key = sha256.Sum256([]byte("Secret key"))
 
+// CreateAccessToken создает cookie идентификатора пользователя и передает их обработчикам.
 func CreateAccessToken(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("token")

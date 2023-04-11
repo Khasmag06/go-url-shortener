@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -10,6 +9,7 @@ import (
 	"github.com/Khasmag06/go-url-shortener/internal/app/storage"
 )
 
+// GetUserURLsHandler возвращает список всех коротких ссылок пользователя.
 func (s *Service) GetUserURLsHandler(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(middleware.UserIDKey).(string)
 	var userShorts []storage.ShortURL
@@ -25,12 +25,10 @@ func (s *Service) GetUserURLsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(userShorts); err != nil {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(userShorts); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(buf.Bytes())
 }

@@ -13,14 +13,17 @@ import (
 	"github.com/Khasmag06/go-url-shortener/internal/app/storage"
 )
 
+// JSONOriginalURL описание модели запроса оригинальной ссылки.
 type JSONOriginalURL struct {
 	URL string `json:"url"`
 }
 
+// JSONShortURL описание модели ответа короткой ссылки.
 type JSONShortURL struct {
 	Result string `json:"result"`
 }
 
+// PostJSONHandler создает короткую ссылку если оригиальная ссылка не существует.
 func (s *Service) PostJSONHandler(w http.ResponseWriter, r *http.Request) {
 	var u JSONOriginalURL
 	if err := json.NewDecoder(r.Body).Decode(&u); err != nil {
@@ -38,7 +41,7 @@ func (s *Service) PostJSONHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil && errors.Is(err, storage.ErrExistsURL) {
 		short, err = s.repo.GetExistURL(shortURL.OriginalURL)
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
 		shortJSON := JSONShortURL{Result: fmt.Sprintf("%s/%s", s.cfg.BaseURL, short)}
 		json.NewEncoder(&buf).Encode(shortJSON)

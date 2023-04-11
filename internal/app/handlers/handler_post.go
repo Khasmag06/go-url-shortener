@@ -12,6 +12,7 @@ import (
 	"github.com/Khasmag06/go-url-shortener/internal/app/storage"
 )
 
+// PostHandler создает короткую ссылку для оригинальной.
 func (s *Service) PostHandler(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	body, err := io.ReadAll(r.Body)

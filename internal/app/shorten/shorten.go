@@ -14,6 +14,7 @@ const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 var length = 6
 
+// URLShorten создает случайную строку длинною 6 латинский букв.
 func URLShorten() string {
 	var url strings.Builder
 	for i := 0; i < length; i++ {

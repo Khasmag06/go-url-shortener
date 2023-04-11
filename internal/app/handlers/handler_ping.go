@@ -9,6 +9,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
+// PingHandler проверяет соединение с бд.
 func (s *Service) PingHandler(w http.ResponseWriter, r *http.Request) {
 	db, err := sql.Open("pgx", s.cfg.DatabaseDsn)
 	if err != nil {

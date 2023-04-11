@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -11,16 +10,19 @@ import (
 	"github.com/Khasmag06/go-url-shortener/internal/app/storage"
 )
 
+// JSONBatchReq описание модели запроса оригинальной ссылки.
 type JSONBatchReq struct {
 	CorID       string `json:"correlation_id"`
 	OriginalURL string `json:"original_url"`
 }
 
+// JSONBatchResp описание модели ответа короткой ссылки.
 type JSONBatchResp struct {
 	CorID    string `json:"correlation_id"`
 	ShortURL string `json:"short_url"`
 }
 
+// BatchHandler создает список коротких ссылок.
 func (s *Service) BatchHandler(w http.ResponseWriter, r *http.Request) {
 	var batchReq []JSONBatchReq
 	err := json.NewDecoder(r.Body).Decode(&batchReq)
@@ -41,13 +43,11 @@ func (s *Service) BatchHandler(w http.ResponseWriter, r *http.Request) {
 		batchResp[i].ShortURL = fmt.Sprintf("%s/%s", s.cfg.BaseURL, short)
 	}
 
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(batchResp); err != nil {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(batchResp); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	w.Write(buf.Bytes())
 
 }

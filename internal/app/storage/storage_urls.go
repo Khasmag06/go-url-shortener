@@ -13,10 +13,14 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-var ErrNotFound = errors.New("not found")
-var ErrExistsURL = errors.New("url already exists")
-var ErrNotAvailable = errors.New("url removed")
+// Общие ошибки
+var (
+	ErrNotFound     = errors.New("not found")
+	ErrExistsURL    = errors.New("url already exists")
+	ErrNotAvailable = errors.New("url removed")
+)
 
+// Storage интерфейс для работы с хранилищем.
 type Storage interface {
 	AddShortURL(userID string, shortURL *ShortURL) error
 	GetShortURL(short string) (*ShortURL, error)
@@ -25,6 +29,7 @@ type Storage interface {
 	DeleteShortURL(userID, shortID string) error
 }
 
+// ShortURL описание модели короткой ссылки.
 type ShortURL struct {
 	ID          string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
@@ -32,10 +37,12 @@ type ShortURL struct {
 	IsDeleted   bool   `json:"-"`
 }
 
+// MemStorage структура, реализующая интерфейс Storage, для хранения данных в памяти.
 type MemStorage struct {
 	urls []*ShortURL
 }
 
+// AddShortURL добавляет короткую ссылку в память.
 func (ms *MemStorage) AddShortURL(userID string, s *ShortURL) error {
 	s.UserID = userID
 	ms.urls = append(ms.urls, s)
@@ -43,6 +50,7 @@ func (ms *MemStorage) AddShortURL(userID string, s *ShortURL) error {
 
 }
 
+// GetShortURL возвращает оригинальную ссылку из памяти.
 func (ms *MemStorage) GetShortURL(id string) (*ShortURL, error) {
 	for _, el := range ms.urls {
 		if el.ID == id {
@@ -57,6 +65,7 @@ func (ms *MemStorage) GetShortURL(id string) (*ShortURL, error) {
 	return nil, ErrNotFound
 }
 
+// GetAllShortURL возвращает все ссылки из памяти.
 func (ms *MemStorage) GetAllShortURL(userID string) ([]*ShortURL, error) {
 	var userShorts []*ShortURL
 	for _, el := range ms.urls {
@@ -67,10 +76,12 @@ func (ms *MemStorage) GetAllShortURL(userID string) ([]*ShortURL, error) {
 	return userShorts, nil
 }
 
+// GetExistURL проверяет существует ли ссылка в памяти.
 func (ms *MemStorage) GetExistURL(originalURL string) (string, error) {
 	return "", nil
 }
 
+// DeleteShortURL удаляет ссылку из памяти.
 func (ms *MemStorage) DeleteShortURL(userID, shortURL string) error {
 	for _, el := range ms.urls {
 		if el.UserID == userID && el.ID == shortURL {
@@ -81,6 +92,7 @@ func (ms *MemStorage) DeleteShortURL(userID, shortURL string) error {
 	return nil
 }
 
+// NewMemoryStorage конструктор для MemoryStorage.
 func NewMemoryStorage() Storage {
 	var short = &ShortURL{"google", "https://www.google.com/", "12345", false}
 	return &MemStorage{
@@ -88,11 +100,13 @@ func NewMemoryStorage() Storage {
 	}
 }
 
+// FileStorage структура, реализующая интерфейс Storage для хранения данных в файле.
 type FileStorage struct {
 	*MemStorage
 	f *os.File
 }
 
+// AddShortURL добавляет короткую ссылку в файл.
 func (fs *FileStorage) AddShortURL(userID string, s *ShortURL) error {
 	if err := fs.MemStorage.AddShortURL(userID, s); err != nil {
 		return fmt.Errorf("unable to add new key in memorystorage: %w", err)
@@ -113,6 +127,7 @@ func (fs *FileStorage) AddShortURL(userID string, s *ShortURL) error {
 	return nil
 }
 
+// NewFileStorage конструктор для FileStorage.
 func NewFileStorage(filename string) (Storage, error) {
 	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
 	if err != nil {
@@ -130,10 +145,12 @@ func NewFileStorage(filename string) (Storage, error) {
 	}, nil
 }
 
+// DBStorage структура, реализующая интерфейс Storage, для хранения данных в базе данных.
 type DBStorage struct {
 	db *sql.DB
 }
 
+// AddShortURL добавляет короткую ссылку в бд.
 func (dbs *DBStorage) AddShortURL(userID string, s *ShortURL) error {
 	_, err := dbs.db.Exec("INSERT INTO shorts (shortID, originalURL, userID) VALUES ($1, $2, $3)", s.ID, s.OriginalURL, userID)
 	if err != nil {
@@ -146,6 +163,7 @@ func (dbs *DBStorage) AddShortURL(userID string, s *ShortURL) error {
 	return nil
 }
 
+// GetShortURL возвращает оригинальную ссылку из бд.
 func (dbs *DBStorage) GetShortURL(id string) (*ShortURL, error) {
 	var short ShortURL
 	row := dbs.db.QueryRow("SELECT shortID, originalURL, is_deleted FROM shorts WHERE shortID = $1", id)
@@ -159,6 +177,7 @@ func (dbs *DBStorage) GetShortURL(id string) (*ShortURL, error) {
 	return &short, nil
 }
 
+// GetAllShortURL возвращает все ссылки из бд.
 func (dbs *DBStorage) GetAllShortURL(userID string) ([]*ShortURL, error) {
 	rows, err := dbs.db.Query("SELECT shortID, originalURL FROM shorts WHERE userID = $1", userID)
 	if err != nil {
@@ -183,6 +202,7 @@ func (dbs *DBStorage) GetAllShortURL(userID string) ([]*ShortURL, error) {
 	return urls, nil
 }
 
+// GetExistURL проверяет существует ли ссылка в бд.
 func (dbs *DBStorage) GetExistURL(originalURL string) (string, error) {
 	var short string
 	row := dbs.db.QueryRow("SELECT shortID FROM shorts WHERE originalURL = $1", originalURL)
@@ -193,6 +213,7 @@ func (dbs *DBStorage) GetExistURL(originalURL string) (string, error) {
 	return short, nil
 }
 
+// DeleteShortURL удаляет ссылку из бд.
 func (dbs *DBStorage) DeleteShortURL(userID, shortID string) error {
 	_, err := dbs.db.Exec("UPDATE shorts SET is_deleted=true WHERE userID = $1 AND shortID = $2", userID, shortID)
 	if err != nil {
@@ -201,6 +222,7 @@ func (dbs *DBStorage) DeleteShortURL(userID, shortID string) error {
 	return nil
 }
 
+// NewDB конструктор для DBStorage
 func NewDB(dsn string) (Storage, error) {
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {

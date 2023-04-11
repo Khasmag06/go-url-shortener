@@ -13,6 +13,7 @@ type userShort struct {
 	shortID string
 }
 
+// DeleteHandler удаляет ссылки пользователя.
 func (s *Service) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 	var shortIDs []string
 	userID := r.Context().Value(middleware.UserIDKey).(string)

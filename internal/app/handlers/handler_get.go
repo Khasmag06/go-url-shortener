@@ -9,8 +9,10 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// ShortIDValid валидация параметра короткой ссылки.
 var ShortIDValid = regexp.MustCompile(`^([a-zA-Z]{6})$`)
 
+// GetHandler возвращеет короткую ссылку
 func (s *Service) GetHandler(w http.ResponseWriter, r *http.Request) {
 	shortID := chi.URLParam(r, "id")
 	if !ShortIDValid.MatchString(shortID) {

@@ -13,10 +13,12 @@ type gzipWriter struct {
 	Writer io.Writer
 }
 
+// Вспомогательная функция для gzipWriter, реализующая интерфейс Writer.
 func (w gzipWriter) Write(b []byte) (int, error) {
 	return w.Writer.Write(b)
 }
 
+// GzipHandle принимает сжатые данные от клиента, а также возвращает, если клиент их поддерживает.
 func GzipHandle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Content-Encoding") == "gzip" {
