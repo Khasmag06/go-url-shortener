@@ -50,5 +50,8 @@ func main() {
 	r.Mount("/", s.Route())
 	r.Mount("/debug", middleware.Profiler())
 
+	if cfg.EnableHTTPS {
+		log.Fatal(http.ListenAndServeTLS(":443", "server.crt", "server.key", r))
+	}
 	log.Fatal(http.ListenAndServe(cfg.ServerAddress, r))
 }
