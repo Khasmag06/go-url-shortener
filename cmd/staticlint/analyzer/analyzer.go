@@ -2,9 +2,11 @@ package analyzer
 
 import (
 	"go/ast"
+
 	"golang.org/x/tools/go/analysis"
 )
 
+// OsExitAnalyzer анализатор проверяющий наличие метода os.Exit в пакете main.
 var OsExitAnalyzer = &analysis.Analyzer{
 	Name: "exitAnalyzer",
 	Doc:  "Don't allow os.Exit in main package",
