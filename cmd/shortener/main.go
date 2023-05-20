@@ -2,16 +2,22 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
 	_ "net/http/pprof" // подключаем пакет pprof
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 
 	"github.com/Khasmag06/go-url-shortener/config"
 	"github.com/Khasmag06/go-url-shortener/internal/app/handlers"
 	"github.com/Khasmag06/go-url-shortener/internal/app/storage"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 )
 
 var (
@@ -22,27 +28,16 @@ var (
 
 func main() {
 
-	fmt.Printf("Build version: %s\n", buildVersion)
-	fmt.Printf("Build date: %s\n", buildDate)
-	fmt.Printf("Build commit: %s\n", buildCommit)
+	printInfo()
 
 	cfg, err := config.NewConfig()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	repo := storage.NewMemoryStorage()
-	if dsn := cfg.DatabaseDsn; dsn != "" {
-		repo, err = storage.NewDB(dsn)
-		if err != nil {
-			log.Fatalf("unable to create database storage: %v", err)
-		}
-
-	} else if fp := cfg.FileStoragePath; fp != "" {
-		repo, err = storage.NewFileStorage(fp)
-		if err != nil {
-			log.Fatalf("unable to create file storage: %v", err)
-		}
+	repo, err := getStorage(cfg)
+	if err != nil {
+		log.Fatalf("enable to create database or file storage: %v", err)
 	}
 
 	s := handlers.NewService(*cfg, repo)
@@ -50,8 +45,48 @@ func main() {
 	r.Mount("/", s.Route())
 	r.Mount("/debug", middleware.Profiler())
 
+	srv := http.Server{Addr: cfg.ServerAddress, Handler: r}
+	idleConnsClosed := make(chan struct{})
+	sigint := make(chan os.Signal, 1)
+	signal.Notify(sigint, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+
+	go func() {
+		<-sigint
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(ctx); err != nil {
+			log.Printf("HTTP server Shutdown: %v", err)
+		}
+		close(idleConnsClosed)
+	}()
+
 	if cfg.EnableHTTPS {
-		log.Fatal(http.ListenAndServeTLS(":443", "server.crt", "server.key", r))
+		srv.Addr = ":443"
+		if err := srv.ListenAndServeTLS("server.crt", "server.key"); err != http.ErrServerClosed {
+			log.Fatalf("HTTP server ServeTLS: %v", err)
+		}
+	} else {
+		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+			log.Fatalf("HTTP server ListenAndServe: %v", err)
+		}
 	}
-	log.Fatal(http.ListenAndServe(cfg.ServerAddress, r))
+
+	<-idleConnsClosed
+
+	fmt.Println("Server Shutdown gracefully")
+}
+
+func printInfo() {
+	fmt.Printf("Build version: %s\n", buildVersion)
+	fmt.Printf("Build date: %s\n", buildDate)
+	fmt.Printf("Build commit: %s\n", buildCommit)
+}
+
+func getStorage(cfg *config.Config) (storage.Storage, error) {
+	if dsn := cfg.DatabaseDsn; dsn != "" {
+		return storage.NewDB(dsn)
+	} else if fp := cfg.FileStoragePath; fp != "" {
+		return storage.NewFileStorage(fp)
+	}
+	return storage.NewMemoryStorage(), nil
 }

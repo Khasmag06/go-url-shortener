@@ -24,8 +24,14 @@ type Config struct {
 func NewConfig() (*Config, error) {
 	var cfg Config
 	cfg.Config = os.Getenv("CONFIG")
-	flag.StringVar(&cfg.Config, "c", cfg.Config, "Config file")
-	flag.Parse()
+
+	//f := flag.NewFlagSet("", flag.ExitOnError)
+	//f.StringVar(&cfg.Config, "c", cfg.Config, "Config file")
+	//if len(os.Args) > 1 {
+	//	if err := f.Parse(os.Args[2:]); err != nil {
+	//		return nil, err
+	//	}
+	//}
 
 	if cfg.Config != "" {
 		content, err := os.ReadFile(cfg.Config)
