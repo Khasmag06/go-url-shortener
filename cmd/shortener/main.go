@@ -81,7 +81,6 @@ func printInfo() {
 	fmt.Printf("Build date: %s\n", buildDate)
 	fmt.Printf("Build commit: %s\n", buildCommit)
 }
-
 func getStorage(cfg *config.Config) (storage.Storage, error) {
 	if dsn := cfg.DatabaseDsn; dsn != "" {
 		return storage.NewDB(dsn)
