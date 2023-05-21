@@ -27,7 +27,7 @@ func (s *Service) PostHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil && errors.Is(err, storage.ErrExistsURL) {
 		short, err = s.repo.GetExistURL(string(body))
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusConflict)

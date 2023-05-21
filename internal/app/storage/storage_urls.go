@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Khasmag06/go-url-shortener/internal/app/models"
 	"io"
 	"os"
 
@@ -27,6 +28,7 @@ type Storage interface {
 	GetAllShortURL(userID string) ([]*ShortURL, error)
 	GetExistURL(originalURL string) (string, error)
 	DeleteShortURL(userID, shortID string) error
+	GetShortAndUserCount(stats *models.InternalStats) error
 }
 
 // ShortURL описание модели короткой ссылки.
@@ -45,6 +47,11 @@ type MemStorage struct {
 // AddShortURL добавляет короткую ссылку в память.
 func (ms *MemStorage) AddShortURL(userID string, s *ShortURL) error {
 	s.UserID = userID
+	for _, el := range ms.urls {
+		if el.OriginalURL == s.OriginalURL {
+			return ErrExistsURL
+		}
+	}
 	ms.urls = append(ms.urls, s)
 	return nil
 
@@ -78,6 +85,11 @@ func (ms *MemStorage) GetAllShortURL(userID string) ([]*ShortURL, error) {
 
 // GetExistURL проверяет существует ли ссылка в памяти.
 func (ms *MemStorage) GetExistURL(originalURL string) (string, error) {
+	for _, el := range ms.urls {
+		if el.OriginalURL == originalURL {
+			return el.ID, nil
+		}
+	}
 	return "", nil
 }
 
@@ -90,6 +102,20 @@ func (ms *MemStorage) DeleteShortURL(userID, shortURL string) error {
 		}
 	}
 	return nil
+}
+
+// GetShortAndUserCount получает количество коротких ссылок и пользователей из памяти.
+func (ms *MemStorage) GetShortAndUserCount(stats *models.InternalStats) error {
+	users := make(map[string]struct{})
+	for _, el := range ms.urls {
+		stats.ShortsCount++
+		if _, ok := users[el.UserID]; !ok {
+			users[el.UserID] = struct{}{}
+			stats.UsersCount++
+		}
+	}
+	return nil
+
 }
 
 // NewMemoryStorage конструктор для MemoryStorage.
@@ -218,6 +244,16 @@ func (dbs *DBStorage) DeleteShortURL(userID, shortID string) error {
 	_, err := dbs.db.Exec("UPDATE shorts SET is_deleted=true WHERE userID = $1 AND shortID = $2", userID, shortID)
 	if err != nil {
 		return fmt.Errorf("unable to delete URL with %s: %w", shortID, err)
+	}
+	return nil
+}
+
+// GetShortAndUserCount получает количество коротких ссылок и пользователей из бд.
+func (dbs *DBStorage) GetShortAndUserCount(stats *models.InternalStats) error {
+	row := dbs.db.QueryRow("SELECT COUNT(shortID), COUNT(DISTINCT userID) FROM shorts")
+	err := row.Scan(&stats.ShortsCount, &stats.UsersCount)
+	if err != nil {
+		return err
 	}
 	return nil
 }
