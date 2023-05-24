@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/Khasmag06/go-url-shortener/internal/app/handlers/gRPC"
 	"log"
 	"net/http"
 	_ "net/http/pprof" // подключаем пакет pprof
@@ -39,6 +40,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("enable to create database or file storage: %v", err)
 	}
+
+	grpcServer := gRPC.NewShortenerServer(*cfg, repo)
+	grpcServer.Run()
 
 	s := handlers.NewService(*cfg, repo)
 	r := chi.NewRouter()
