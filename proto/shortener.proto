@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package shortener;
+
+option go_package = "github.com/Khasmag06/go-url-shortener/proto";
+
+
+message AddShortRequest {
+  string originalURL = 1;
+}
+
+message AddShortResponse {
+  string shortURL = 1;
+}
+
+service Shortener{
+  rpc AddShortURL (AddShortRequest) returns (AddShortResponse);
+}
+
+

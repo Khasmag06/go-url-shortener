@@ -48,7 +48,7 @@ func CreateAccessToken(next http.Handler) http.Handler {
 		http.SetCookie(w, cookie)
 		cookieDecrypt, err := decrypt(cookie.Value)
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
 		ctx := context.WithValue(r.Context(), UserIDKey, cookieDecrypt)
 		next.ServeHTTP(w, r.WithContext(ctx))

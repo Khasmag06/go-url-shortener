@@ -16,8 +16,9 @@ type Config struct {
 	BaseURL         string `env:"BASE_URL" envDefault:"http://localhost:8080" json:"base_url"`
 	EnableHTTPS     bool   `env:"ENABLE_HTTPS" envDefault:"false" json:"enable_https"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH" envDefault:"" json:"file_storage_path"`
+	TrustedSubnet   string `env:"TRUSTED_SUBNET" envDefault:"192.168.1.0/24" json:"trusted_subnet"`
 	DatabaseDsn     string `env:"DATABASE_DSN" envDefault:"" json:"database_dsn"`
-	//DatabaseDsn     string `env:"DATABASE_DSN" envDefault:"postgres://localhost:5432/postgres?sslmode=disable"`
+	//DatabaseDsn string `env:"DATABASE_DSN" envDefault:"postgres://localhost:5432/postgres?sslmode=disable"`
 }
 
 // NewConfig конструктор для Config
@@ -52,6 +53,7 @@ func NewConfig() (*Config, error) {
 	flag.StringVar(&cfg.BaseURL, "b", cfg.BaseURL, "Base URL")
 	flag.BoolVar(&cfg.EnableHTTPS, "s", cfg.EnableHTTPS, "Enable HTTPS")
 	flag.StringVar(&cfg.FileStoragePath, "f", cfg.FileStoragePath, "File Storage Path")
+	flag.StringVar(&cfg.TrustedSubnet, "t", cfg.TrustedSubnet, "Trusted subnet")
 	flag.StringVar(&cfg.DatabaseDsn, "d", cfg.DatabaseDsn, "Database DSN")
 	flag.Parse()
 
