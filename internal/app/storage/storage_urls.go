@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Khasmag06/go-url-shortener/internal/app/models"
+	"github.com/jackc/pgerrcode"
 	"io"
 	"os"
 
-	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )

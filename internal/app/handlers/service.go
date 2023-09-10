@@ -9,18 +9,15 @@ import (
 	"net/http"
 )
 
-// Service структура, описывающая взаимодействие обработчиков с хранилищем и конфигурационными данными.
 type Service struct {
 	cfg  config.Config
 	repo storage.Storage
 }
 
-// NewService конструктор для Service.
 func NewService(cfg config.Config, repo storage.Storage) *Service {
 	return &Service{cfg, repo}
 }
 
-// Route группирует запросы и возвращает роутер.
 func (s *Service) Route() chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
